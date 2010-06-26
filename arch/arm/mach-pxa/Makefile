@@ -66,6 +66,7 @@ obj-$(CONFIG_MACH_PALMLD)	+= palmld.o
 obj-$(CONFIG_MACH_PALMZ72)	+= palmz72.o
 obj-$(CONFIG_MACH_TREO680)	+= treo680.o
 obj-$(CONFIG_ARCH_VIPER)	+= viper.o
+obj-$(CONFIG_MACH_X50)		+= aximx50.o
 
 ifeq ($(CONFIG_MACH_ZYLONITE),y)
   obj-y				+= zylonite.o

@@ -605,6 +605,13 @@ static void ads7846_rx(void *ads)
 
 		if (ts->swap_xy)
 			swap(x, y);
+		
+		int xtmp, ytmp;
+		xtmp = x;
+		ytmp = y;
+
+		y = (((xtmp-176)*173)/1000);
+		x = 480-(((ytmp-256)*136)/1000);
 
 		input_report_abs(input, ABS_X, x);
 		input_report_abs(input, ABS_Y, y);

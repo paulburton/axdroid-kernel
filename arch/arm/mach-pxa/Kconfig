@@ -94,6 +94,15 @@ config ARCH_PXA_IDP
 	bool "Accelent Xscale IDP"
 	select PXA25x
 
+config MACH_X50
+	bool "Dell Axim X50/X51(v)"
+	select PXA27x
+	select KEYBOARD_GPIO
+	help
+	  Say Y here if you plan to boot the kernel on the Dell Axim X50/X51(v)
+	  series of PDAs. Currently there is only basic support for this
+	  type of PDAs.
+
 config PXA_SHARPSL
 	bool "SHARP Zaurus SL-5600, SL-C7xx and SL-Cxx00 Models"
 	select SHARP_SCOOP

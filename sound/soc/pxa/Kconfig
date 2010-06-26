@@ -42,6 +42,15 @@ config SND_PXA2XX_SOC_SPITZ
 	  Say Y if you want to add support for SoC audio on Sharp
 	  Zaurus SL-Cxx00 models (Spitz, Borzoi and Akita).
 
+config SND_PXA2XX_SOC_X50
+	tristate "SoC Audio support for Dell Axim x50/51v"
+	depends on SND_PXA2XX_SOC && MACH_X50
+	select SND_PXA2XX_SOC_I2S
+	select SND_SOC_WM8750
+	help
+	  Say Y if you want to add support for SoC audio on Dell
+          Axim x50/51(v) models.
+
 config SND_PXA2XX_SOC_POODLE
 	tristate "SoC Audio support for Poodle"
 	depends on SND_PXA2XX_SOC && MACH_POODLE
