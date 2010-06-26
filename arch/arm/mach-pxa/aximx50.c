@@ -41,7 +41,8 @@
 #include <mach/mmc.h>
 #include <mach/udc.h>
 
-#include "../generic.h"
+#include "generic.h"
+#include "devices.h"
 
 /****************
  * Init Machine *
