@@ -260,6 +260,42 @@ static struct pxa2xx_udc_mach_info x50_udc_info = {
  * PXA Framebuffer
  */
 
+static u32 lcd_type;
+
+#define lcd_readl(off) __raw_readl(lcd_iobase + off)
+#define lcd_writel(off,val) __raw_writel(val, lcd_iobase + off)
+
+#define MBX_SYSRST (marathon_iobase + 0x10)
+#define MBX_LCDCFG (marathon_iobase + 0x60)
+
+#define MBX_LCDCFG_LCD1ISIN 0x00010000
+#define MBX_LCDCFG_IN565    0x20000000
+
+static void aximx50_pxafb_lcd_power(int on, struct fb_var_screeninfo *info)
+{
+	void __iomem *marathon_iobase;
+
+	if (lcd_type % 2 == 0) {
+		/* VGA Device */
+		/* AKA. Device with a 2700g */
+
+		if ((marathon_iobase = ioremap(0x0FFE0000, 0x1FFFF))) {
+			printk(KERN_DEBUG "Mapped 2700G Registers to 0x%08lx\n", (ulong)marathon_iobase);
+			printk(KERN_DEBUG "  LCD_CONFIG=0x%08x\n", readl(MBX_LCDCFG));
+			
+			writel(1, MBX_SYSRST);
+			mdelay(10);
+			//writel(readl(MBX_LCDCFG) | 0x80000, MBX_LCDCFG);
+
+			writel(readl(MBX_LCDCFG) | MBX_LCDCFG_LCD1ISIN | MBX_LCDCFG_IN565,
+			       MBX_LCDCFG); /* LCD1 is LCDIN */
+		}
+		else {
+			printk(KERN_ERR "Unable to map 2700G registers\n");
+		}
+	}
+}
+
 static struct pxafb_mode_info aximx50_pxafb_modes_vga[] = {
 	{
 		.pixclock	= 96153,
@@ -288,6 +324,7 @@ static struct pxafb_mach_info aximx50_fb_info_vga = {
 		,						// 0x0
 		//0x01b008f9,
 	.lccr3		= 0x04f00001,
+	.pxafb_lcd_power = aximx50_pxafb_lcd_power,
 };
 
 static struct pxafb_mode_info aximx50_pxafb_modes_qvga[] = {
@@ -318,6 +355,7 @@ static struct pxafb_mach_info aximx50_fb_info_qvga = {
 		,						// 0x0
 		//0x003008f9,
 	.lccr3		= 0x04900008,
+	.pxafb_lcd_power = aximx50_pxafb_lcd_power,
 };  
 
 /*
@@ -341,33 +379,19 @@ static struct resource aximx50_2700G_resource[] = {
 	},
 };
 
-static unsigned long save_lcd_regs[10];
-
 static int aximx50_marathon_probe(struct fb_info *fb)
 {
-	/* save PXA-270 pin settings before enabling 2700G */
-	save_lcd_regs[0] = GPDR1;
-	save_lcd_regs[1] = GPDR2;
-	save_lcd_regs[2] = GAFR1_U;
-	save_lcd_regs[3] = GAFR2_L;
-	save_lcd_regs[4] = GAFR2_U;
-
 	/* Disable PXA-270 on-chip controller driving pins */
-	GPDR1 &= ~(0xfc000000);
-	GPDR2 &= ~(0x00c03fff);
-	GAFR1_U &= ~(0xfff00000);
-	GAFR2_L &= ~(0x0fffffff);
-	GAFR2_U &= ~(0x0000f000);
+	GAFR1_U &= ~0xAAA00000;		/* 58-63 */
+	GAFR2_L &= ~0x0AAAAAAA;		/* 64-77 */
+	GPDR1 &= ~0xFC000000;		/* 58-63 = Input */
+	GPDR2 &= ~0x0000CFFF;		/* 64-77 = Input */
+
 	return 0;
 }
 
 static int aximx50_marathon_remove(struct fb_info *fb)
 {
-	GPDR1 =   save_lcd_regs[0];
-	GPDR2 =   save_lcd_regs[1];
-	GAFR1_U = save_lcd_regs[2];
-	GAFR2_L = save_lcd_regs[3];
-	GAFR2_U = save_lcd_regs[4];
 	return 0;
 }
 
@@ -405,15 +429,9 @@ static struct platform_device aximx50_2700G = {
 };
 #endif
 
-#define lcd_readl(off) __raw_readl(lcd_iobase + off)
-#define lcd_writel(off,val) __raw_writel(val, lcd_iobase + off)
-
-#define MBX_LCDCFG (marathon_iobase + 0x60)
-
 static void __init aximx50_init_display(void)
 {
-	u32 lcd_type;
-	void __iomem *lcd_iobase, *marathon_iobase;
+	void __iomem *lcd_iobase;
 	
 	aximx50_fpga_set(0x1E, 0x8);
 	udelay(1000);
@@ -421,16 +439,19 @@ static void __init aximx50_init_display(void)
 	udelay(1000);
 	aximx50_fpga_clear(0x1E, 0x8);
 	
-	// From AximSDK.dll, it seems:
-	//   0 = 3.7" Sharp
-	//   1 = 3.5" Sharp
-	//   2 = 3.7" Samsung
-	//   3 = 3.5" Sharp
-	
+	/*
+		From AximSDK.dll, it seems:
+
+		0 = 3.7" Sharp
+		1 = 3.5" Sharp
+		2 = 3.7" Samsung
+		3 = 3.5" Sharp
+	*/
+
 	printk(KERN_DEBUG "Detected display: ");
 	printk(lcd_type % 2 ? "3.5\" " : "3.7\" ");
 	printk(lcd_type == 2 ? "Samsung\n" : "Sharp\n");
-	
+
 #if defined(CONFIG_FB_MBX) || defined(CONFIG_FB_MBX_MODULE)
 	if (lcd_type % 2 == 0) {
 		printk(KERN_DEBUG "Using Intel 2700g (Marathon)\n");
@@ -440,30 +461,15 @@ static void __init aximx50_init_display(void)
 	else {
 #endif
 
-	// Reset the PXA LCD controller
-	// Done as enabling WinCE mirror mode does
+	/* Setup the PXA LCD controller */
 	
-	printk(KERN_DEBUG "GPDR1:   0x%08x -> 0x%08x\n", GPDR1, GPDR1 | 0xFC000000);
-	printk(KERN_DEBUG "GPDR2:   0x%08x -> 0x%08x\n", GPDR2, GPDR2 | 0x0000CFFF);
-	printk(KERN_DEBUG "GAFR1_U: 0x%08x -> 0x%08x\n", GAFR1_U, GAFR1_U | 0xAAA00000);
-	printk(KERN_DEBUG "GAFR2_L: 0x%08x -> 0x%08x\n", GAFR2_L, GAFR2_L | 0x0AAAAAAA);
-	
-	GPDR1 |= 0xFC000000;		// 58-63 = Output
-	GPDR2 |= 0x0000CFFF;		// 64-77 = Output
-	GAFR1_U |= 0xAAA00000;		// 58-63 = AF2
-	GAFR2_L |= 0x0AAAAAAA;		// 64-77 = AF2
+	GAFR1_U |= 0xAAA00000;		/* GPIO 58-63 = AF2 */
+	GAFR2_L |= 0x0AAAAAAA;		/* GPIO 64-77 = AF2 */
+	GPDR1 |= 0xFC000000;		/* GPIO 58-63 = Output */
+	GPDR2 |= 0x0000CFFF;		/* GPIO 64-77 = Output */
 	
 	if ((lcd_iobase = ioremap(0x44000000, 0xFFFF))) {
-		printk(KERN_DEBUG "Mapped PXA LCD Registers to 0x%08lx\n", (ulong)lcd_iobase);
-		printk(KERN_DEBUG "  LCCR0=%08x\n", lcd_readl(LCCR0));
-		printk(KERN_DEBUG "  LCCR1=%08x\n", lcd_readl(LCCR1));
-		printk(KERN_DEBUG "  LCCR2=%08x\n", lcd_readl(LCCR2));
-		printk(KERN_DEBUG "  LCCR3=%08x\n", lcd_readl(LCCR3));
-		printk(KERN_DEBUG "  LCCR4=%08x\n", lcd_readl(LCCR4));
-		printk(KERN_DEBUG "  LCCR5=%08x\n", lcd_readl(LCCR5));
-		printk(KERN_DEBUG "   FBR0=%08x\n", lcd_readl(FBR0));
-		
-		// Clear control
+		/* Clear control registers */
 		lcd_writel(LCCR0, 0);
 		lcd_writel(LCCR1, 0);
 		lcd_writel(LCCR2, 0);
@@ -473,30 +479,13 @@ static void __init aximx50_init_display(void)
 		
 		lcd_writel(FBR0, 0);
 		
-		// Clear interrupts
+		/* Clear interrupts */
 		lcd_writel(LCSR, 0x7FF);
 		lcd_writel(LCSR1, 0x3E3F3F3F);
-		
-		iounmap(lcd_iobase);
 	}
 	else {
 		printk(KERN_ERR "Unable to map PXA LCD registers\n");
 	}
-	
-	if ((marathon_iobase = ioremap(0x0FFE0000, 0x1FFFF))) {
-		printk(KERN_DEBUG "Mapped 2700G Registers to 0x%08lx\n", (ulong)marathon_iobase);
-		printk(KERN_DEBUG "  LCD_CONFIG=0x%08x\n", readl(MBX_LCDCFG));
-		
-		writel(readl(MBX_LCDCFG) & ~0x8000, MBX_LCDCFG);
-		
-		iounmap(marathon_iobase);
-	}
-	else {
-		printk(KERN_ERR "Unable to map 2700G registers\n");
-	}
-
-	// Enabling WinCE mirror mode does this
-	aximx50_fpga_set(0x18, 0xC);
 
 	if (lcd_type % 2) {
 		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA)\n");
