@@ -77,8 +77,8 @@ static int aximx50_startup(struct snd_pcm_substream *substream)
 static void aximx50_shutdown(struct snd_pcm_substream *substream)
 {
     /* set = unmute headphone */
-	gpio_set_value(GPIO_NR_X50_MUTE_L, 1);
-	gpio_set_value(GPIO_NR_X50_MUTE_R, 1);
+	//gpio_set_value(GPIO_NR_X50_MUTE_L, 1);
+	//gpio_set_value(GPIO_NR_X50_MUTE_R, 1);
 }
 
 static int aximx50_hw_params(struct snd_pcm_substream *substream,
@@ -123,8 +123,8 @@ static int aximx50_hw_params(struct snd_pcm_substream *substream,
         return ret;
 
     /* set the I2S system clock as input (unused) */
-    ret = snd_soc_dai_set_sysclk(cpu_dai, PXA2XX_I2S_SYSCLK, 0,
-        SND_SOC_CLOCK_IN);
+    ret = snd_soc_dai_set_sysclk(cpu_dai, PXA2XX_I2S_SYSCLK, clk,
+        SND_SOC_CLOCK_OUT);
     if (ret < 0)
         return ret;
 
@@ -237,7 +237,7 @@ static int aximx50_wm8750_init(struct snd_soc_codec *codec)
     snd_soc_dapm_disable_pin(codec, "OUT3");
     snd_soc_dapm_disable_pin(codec, "MONO1");
 
-    /* Add poodle specific controls */
+    /* Add axim specific controls */
     for (i = 0; i < ARRAY_SIZE(wm8750_aximx50_controls); i++) {
         err = snd_ctl_add(codec->card,
             snd_soc_cnew(&wm8750_aximx50_controls[i], codec, NULL));
@@ -245,20 +245,20 @@ static int aximx50_wm8750_init(struct snd_soc_codec *codec)
             return err;
     }
 
-    /* Add poodle specific widgets */
+    /* Add axim specific widgets */
     snd_soc_dapm_new_controls(codec, wm8750_dapm_widgets,
                   ARRAY_SIZE(wm8750_dapm_widgets));
 
-    /* Set up poodle specific audio path audio_map */
+    /* Set up axim specific audio path audio_map */
     snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
 
     snd_soc_dapm_sync(codec);
     return 0;
 }
 
-/* poodle digital audio interface glue - connects codec <--> CPU */
+/* aximx50 digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link aximx50_dai = {
-    .name = "WM8750",
+    .name = "wm8750",
     .stream_name = "WM8750",
     .cpu_dai = &pxa_i2s_dai,
     .codec_dai = &wm8750_dai,
@@ -277,7 +277,7 @@ static struct snd_soc_card snd_soc_aximx50 = {
 /* aximx50 audio private data */
 static struct wm8750_setup_data aximx50_wm8750_setup = {
 	.i2c_bus = 0,
-    .i2c_address = 0x1b,
+    .i2c_address = 0x1a,
 };
 
 /* aximx50 audio subsystem */
@@ -292,19 +292,7 @@ static struct platform_device *aximx50_snd_device;
 static int __init aximx50_init(void)
 {
     int ret;
-
-//  if (!machine_is_poodle())
-//      return -ENODEV;
-
-/*
-    locomo_gpio_set_dir(&aximx50_locomo_device.dev,
-        aximx50_LOCOMO_GPIO_AMP_ON, 0);*/
-    /* should we mute HP at startup - burning power ?*/
-/*  locomo_gpio_set_dir(&aximx50_locomo_device.dev,
-        aximx50_LOCOMO_GPIO_MUTE_L, 0);
-    locomo_gpio_set_dir(&aximx50_locomo_device.dev,
-        aximx50_LOCOMO_GPIO_MUTE_R, 0);*/
-
+    
     aximx50_snd_device = platform_device_alloc("soc-audio", -1);
     if (!aximx50_snd_device)
         return -ENOMEM;

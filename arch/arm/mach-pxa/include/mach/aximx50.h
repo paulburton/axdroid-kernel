@@ -27,17 +27,30 @@
 #define GPIO_NR_X50_MUTE_L            83
 #define GPIO_NR_X50_MUTE_R            96
 
-#define GPIO_NR_AXIMX50_SD_POWER      107             /* TODO: not sure... */
-#define GPIO_NR_AXIMX50_SD_DETECT     12
-#define GPIO_NR_AXIMX50_SD_READONLY   27
+/* SD Card */
+#define GPIO_NR_AXIMX50_SD_POWER            120       //TODO: This is wrong
+#define GPIO_NR_AXIMX50_SD_DETECT           12
+#define GPIO_NR_AXIMX50_SD_READONLY         27
+
+/* PCMCIA (WiFi) */
+#define GPIO_NR_AXIMX50_PCMCIA_READY        38        //TODO: Unsure about these
+#define GPIO_NR_AXIMX50_PCMCIA_POWER        107
+#define GPIO_NR_AXIMX50_PCMCIA_RESET        89
+
+/* Buttons */
+#define GPIO_NR_AXIMX50_BTN_POWER           0
 
 /* CPLD */
+#define AXIMX50_EGPIO_BASE					0x80
+#define AXIMX50_EGPIO_REGSTART				0x1C
+#define __AXIMX50_EGPIO(reg,bit)			(AXIMX50_EGPIO_BASE + \
+                                			((reg >> 1) - AXIMX50_EGPIO_REGSTART)*8 + \
+                                			bit)
 
-#define X50_EGPIO_BASE			0x80 /* GPIO_BOARD_START */
-#define X50_EGPIO(reg,bit) \
-	(X50_EGPIO_BASE + 16*reg + bit)
-
-#define EGPIO_X50_BT_PWR                        X50_EGPIO(3,2)
-#define EGPIO_X50_BT_RESET                      X50_EGPIO(0,3)
+#define AXIMX50_EGPIO_MARATHON				__AXIMX50_EGPIO(0x14, 3)
+#define AXIMX50_EGPIO_CODEC_POWER			__AXIMX50_EGPIO(0x1C, 1)
+#define AXIMX50_EGPIO_LCD_QVGA				__AXIMX50_EGPIO(0x1E, 0)
+#define AXIMX50_EGPIO_LCD_VENDOR			__AXIMX50_EGPIO(0x1E, 1)
+#define AXIMX50_EGPIO_LCD_DETECT			__AXIMX50_EGPIO(0x1E, 3)
 
 #endif

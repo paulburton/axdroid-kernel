@@ -17,6 +17,7 @@
 #include <linux/platform_device.h>
 #include <linux/gpio_keys.h>
 #include <linux/i2c.h>
+#include <linux/clk.h>
 
 #include <linux/mfd/htc-egpio.h>
 
@@ -40,6 +41,10 @@
 #include <mach/ssp.h>
 #include <mach/mmc.h>
 #include <mach/udc.h>
+#include <mach/regs-ost.h>
+#include <mach/regs-lcd.h>
+
+#include <video/mbxfb.h>
 
 #include "generic.h"
 #include "devices.h"
@@ -100,12 +105,19 @@ static unsigned long aximx50_pin_config[] __initdata = {
     GPIO25_SSP1_TXD,
     GPIO26_SSP1_RXD,
 
+	/* I2S */
+	GPIO28_I2S_BITCLK_OUT,
+	GPIO29_I2S_SDATA_IN,
+	GPIO30_I2S_SDATA_OUT,
+	GPIO31_I2S_SYNC,
+	GPIO113_I2S_SYSCLK,
+
     /* PC Card */
     GPIO48_nPOE,
     GPIO49_nPWE,
     GPIO50_nPIOR,
     GPIO51_nPIOW,
-    GPIO85_nPCE_1,
+    GPIO102_nPCE_1,
     GPIO54_nPCE_2,
     GPIO55_nPREG,
     GPIO56_nPWAIT,
@@ -130,6 +142,38 @@ static unsigned long aximx50_pin_config[] __initdata = {
     GPIO103_KP_MKOUT_0,
     GPIO105_KP_MKOUT_2,
 };
+
+/*
+ * FPGA
+ */
+
+static u16 *aximx50_fpga;
+static u16 aximx50_fpga_cache[16] = { 0 };
+
+void aximx50_fpga_set(uint offset, u16 val)
+{
+	aximx50_fpga_cache[offset / sizeof(u16)] |= val;
+	aximx50_fpga[offset / sizeof(u16)] = aximx50_fpga_cache[offset / sizeof(u16)];
+}
+
+void aximx50_fpga_clear(uint offset, u16 val)
+{
+	aximx50_fpga_cache[offset / sizeof(u16)] |= val;
+	aximx50_fpga[offset / sizeof(u16)] = aximx50_fpga_cache[offset / sizeof(u16)];
+}
+
+u16 aximx50_fpga_read(uint offset)
+{
+	return aximx50_fpga[offset / sizeof(u16)];
+}
+
+static void aximx50_init_fpga(void)
+{
+	if (!(aximx50_fpga = ioremap_nocache(PXA_CS4_PHYS, 0x20))) {
+		printk(KERN_ERR "Unable to map FPGA!\n");
+		return;
+	}
+}
 
 /******************************************************************************
  * SD/MMC card controller
@@ -174,6 +218,33 @@ static struct pxa27x_keypad_platform_data x50_kbd = {
     .direct_key_map = { 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
+/*
+  GPIO Keys
+*/
+
+static struct gpio_keys_button aximx50_gpio_buttons[] = {
+	{
+		.desc = "Power",
+		.gpio = GPIO_NR_AXIMX50_BTN_POWER,
+		.code = KEY_SUSPEND,
+		.type = EV_PWR,
+		.wakeup = 1,
+	},
+};
+
+static struct gpio_keys_platform_data aximx50_gpio_keys_platform_data = {
+	.buttons = aximx50_gpio_buttons,
+	.nbuttons = ARRAY_SIZE(aximx50_gpio_buttons),
+};
+
+static struct platform_device aximx50_gpio_keys_device = {
+	.name = "gpio-keys",
+	.id = -1,
+	.dev = {
+		.platform_data = &aximx50_gpio_keys_platform_data,
+	},
+};
+
 /****************************************************************
  * USB Gadget
  ****************************************************************/
@@ -184,23 +255,24 @@ static struct pxa2xx_udc_mach_info x50_udc_info = {
 //  .gpio_pullup =
 };
 
-/***************
- * Framebuffer *
- ***************/
+
+/*
+ * PXA Framebuffer
+ */
 
 static struct pxafb_mode_info aximx50_pxafb_modes_vga[] = {
-{
-	.pixclock	= 96153,
-	.bpp		= 16,
-	.xres		= 480,
-	.yres		= 640,
-	.hsync_len	= 64,
-	.vsync_len	= 5,
-	.left_margin	= 17,
-	.upper_margin	= 1,
-	.right_margin	= 87,
-	.lower_margin   = 4,
-},
+	{
+		.pixclock	= 96153,
+		.bpp		= 16,
+		.xres		= 480,
+		.yres		= 640,
+		.hsync_len	= 64,
+		.vsync_len	= 5,
+		.left_margin	= 17,
+		.upper_margin	= 1,
+		.right_margin	= 87,
+		.lower_margin   = 4,
+	},
 };
 
 static struct pxafb_mach_info aximx50_fb_info_vga = {
@@ -218,6 +290,227 @@ static struct pxafb_mach_info aximx50_fb_info_vga = {
 	.lccr3		= 0x04f00001,
 };
 
+static struct pxafb_mode_info aximx50_pxafb_modes_qvga[] = {
+	{
+		.pixclock	= 96153,
+		.bpp		= 16,
+		.xres		= 240,
+		.yres		= 320,
+		.hsync_len	= 20,
+		.vsync_len	= 4,
+		.left_margin	= 59,
+		.upper_margin	= 4,
+		.right_margin	= 16,
+		.lower_margin	= 0,
+	},
+};
+
+static struct pxafb_mach_info aximx50_fb_info_qvga = {
+	.modes		= aximx50_pxafb_modes_qvga,
+	.num_modes	= ARRAY_SIZE(aximx50_pxafb_modes_qvga),
+	.lccr0		= LCCR0_ENB | LCCR0_LDM |		// 0x9
+		LCCR0_SFM | LCCR0_IUM | LCCR0_EFM | LCCR0_Act |	// 0xf
+		LCCR0_QDM |					// 0x8
+								// 0x0
+								// 0x0
+		LCCR0_BM  | LCCR0_OUM				// 0x3
+								// 0x0
+		,						// 0x0
+		//0x003008f9,
+	.lccr3		= 0x04900008,
+};  
+
+/*
+ * Intel 2700g (Marathon)
+ */
+#if defined(CONFIG_FB_MBX) || defined(CONFIG_FB_MBX_MODULE)
+static u64 fb_dma_mask = ~(u64)0;
+
+static struct resource aximx50_2700G_resource[] = {
+	/* frame buffer memory including ODFB and External SDRAM */
+	[0] = {
+		.start = PXA_CS3_PHYS,
+		.end   = PXA_CS3_PHYS + 0x01ffffff,
+		.flags = IORESOURCE_MEM,
+	},
+	/* Marathon registers */
+	[1] = {
+		.start = PXA_CS3_PHYS + 0x03fe0000,
+		.end   = PXA_CS3_PHYS + 0x03ffffff,
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+static unsigned long save_lcd_regs[10];
+
+static int aximx50_marathon_probe(struct fb_info *fb)
+{
+	/* save PXA-270 pin settings before enabling 2700G */
+	save_lcd_regs[0] = GPDR1;
+	save_lcd_regs[1] = GPDR2;
+	save_lcd_regs[2] = GAFR1_U;
+	save_lcd_regs[3] = GAFR2_L;
+	save_lcd_regs[4] = GAFR2_U;
+
+	/* Disable PXA-270 on-chip controller driving pins */
+	GPDR1 &= ~(0xfc000000);
+	GPDR2 &= ~(0x00c03fff);
+	GAFR1_U &= ~(0xfff00000);
+	GAFR2_L &= ~(0x0fffffff);
+	GAFR2_U &= ~(0x0000f000);
+	return 0;
+}
+
+static int aximx50_marathon_remove(struct fb_info *fb)
+{
+	GPDR1 =   save_lcd_regs[0];
+	GPDR2 =   save_lcd_regs[1];
+	GAFR1_U = save_lcd_regs[2];
+	GAFR2_L = save_lcd_regs[3];
+	GAFR2_U = save_lcd_regs[4];
+	return 0;
+}
+
+static struct mbxfb_platform_data aximx50_2700G_data = {
+	.xres = {
+		.min = 240,
+		.max = 1200,
+		.defval = 480,
+	},
+	.yres = {
+		.min = 240,
+		.max = 1200,
+		.defval = 640,
+	},
+	.bpp = {
+		.min = 16,
+		.max = 32,
+		.defval = 16,
+	},
+	.memsize = 16*1024*1024,
+	.probe = aximx50_marathon_probe,
+	.remove = aximx50_marathon_remove,
+};
+
+static struct platform_device aximx50_2700G = {
+	.name		= "mbx-fb",
+	.dev		= {
+		.platform_data	= &aximx50_2700G_data,
+		.dma_mask	= &fb_dma_mask,
+		.coherent_dma_mask = 0xffffffff,
+	},
+	.num_resources	= ARRAY_SIZE(aximx50_2700G_resource),
+	.resource	= aximx50_2700G_resource,
+	.id		= -1,
+};
+#endif
+
+#define lcd_readl(off) __raw_readl(lcd_iobase + off)
+#define lcd_writel(off,val) __raw_writel(val, lcd_iobase + off)
+
+#define MBX_LCDCFG (marathon_iobase + 0x60)
+
+static void __init aximx50_init_display(void)
+{
+	u32 lcd_type;
+	void __iomem *lcd_iobase, *marathon_iobase;
+	
+	aximx50_fpga_set(0x1E, 0x8);
+	udelay(1000);
+	lcd_type = aximx50_fpga_read(0x1E) & 3;
+	udelay(1000);
+	aximx50_fpga_clear(0x1E, 0x8);
+	
+	// From AximSDK.dll, it seems:
+	//   0 = 3.7" Sharp
+	//   1 = 3.5" Sharp
+	//   2 = 3.7" Samsung
+	//   3 = 3.5" Sharp
+	
+	printk(KERN_DEBUG "Detected display: ");
+	printk(lcd_type % 2 ? "3.5\" " : "3.7\" ");
+	printk(lcd_type == 2 ? "Samsung\n" : "Sharp\n");
+	
+#if defined(CONFIG_FB_MBX) || defined(CONFIG_FB_MBX_MODULE)
+	if (lcd_type % 2 == 0) {
+		printk(KERN_DEBUG "Using Intel 2700g (Marathon)\n");
+		
+		platform_device_register(&aximx50_2700G);
+	}
+	else {
+#endif
+
+	// Reset the PXA LCD controller
+	// Done as enabling WinCE mirror mode does
+	
+	printk(KERN_DEBUG "GPDR1:   0x%08x -> 0x%08x\n", GPDR1, GPDR1 | 0xFC000000);
+	printk(KERN_DEBUG "GPDR2:   0x%08x -> 0x%08x\n", GPDR2, GPDR2 | 0x0000CFFF);
+	printk(KERN_DEBUG "GAFR1_U: 0x%08x -> 0x%08x\n", GAFR1_U, GAFR1_U | 0xAAA00000);
+	printk(KERN_DEBUG "GAFR2_L: 0x%08x -> 0x%08x\n", GAFR2_L, GAFR2_L | 0x0AAAAAAA);
+	
+	GPDR1 |= 0xFC000000;		// 58-63 = Output
+	GPDR2 |= 0x0000CFFF;		// 64-77 = Output
+	GAFR1_U |= 0xAAA00000;		// 58-63 = AF2
+	GAFR2_L |= 0x0AAAAAAA;		// 64-77 = AF2
+	
+	if ((lcd_iobase = ioremap(0x44000000, 0xFFFF))) {
+		printk(KERN_DEBUG "Mapped PXA LCD Registers to 0x%08lx\n", (ulong)lcd_iobase);
+		printk(KERN_DEBUG "  LCCR0=%08x\n", lcd_readl(LCCR0));
+		printk(KERN_DEBUG "  LCCR1=%08x\n", lcd_readl(LCCR1));
+		printk(KERN_DEBUG "  LCCR2=%08x\n", lcd_readl(LCCR2));
+		printk(KERN_DEBUG "  LCCR3=%08x\n", lcd_readl(LCCR3));
+		printk(KERN_DEBUG "  LCCR4=%08x\n", lcd_readl(LCCR4));
+		printk(KERN_DEBUG "  LCCR5=%08x\n", lcd_readl(LCCR5));
+		printk(KERN_DEBUG "   FBR0=%08x\n", lcd_readl(FBR0));
+		
+		// Clear control
+		lcd_writel(LCCR0, 0);
+		lcd_writel(LCCR1, 0);
+		lcd_writel(LCCR2, 0);
+		lcd_writel(LCCR3, 0);
+		lcd_writel(LCCR4, 0);
+		lcd_writel(LCCR5, 0);
+		
+		lcd_writel(FBR0, 0);
+		
+		// Clear interrupts
+		lcd_writel(LCSR, 0x7FF);
+		lcd_writel(LCSR1, 0x3E3F3F3F);
+		
+		iounmap(lcd_iobase);
+	}
+	else {
+		printk(KERN_ERR "Unable to map PXA LCD registers\n");
+	}
+	
+	if ((marathon_iobase = ioremap(0x0FFE0000, 0x1FFFF))) {
+		printk(KERN_DEBUG "Mapped 2700G Registers to 0x%08lx\n", (ulong)marathon_iobase);
+		printk(KERN_DEBUG "  LCD_CONFIG=0x%08x\n", readl(MBX_LCDCFG));
+		
+		writel(readl(MBX_LCDCFG) & ~0x8000, MBX_LCDCFG);
+		
+		iounmap(marathon_iobase);
+	}
+	else {
+		printk(KERN_ERR "Unable to map 2700G registers\n");
+	}
+
+	// Enabling WinCE mirror mode does this
+	aximx50_fpga_set(0x18, 0xC);
+
+	if (lcd_type % 2) {
+		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA)\n");
+		set_pxa_fb_info(&aximx50_fb_info_qvga);
+	}
+	else {
+		printk(KERN_DEBUG "Using PXA Framebuffer (VGA)\n");
+		set_pxa_fb_info(&aximx50_fb_info_vga);
+	}
+
+#if defined(CONFIG_FB_MBX) || defined(CONFIG_FB_MBX_MODULE)
+	}
+#endif
+}
 
 /* ADS7846 is connected through SSP ... */
 static struct pxa2xx_spi_master pxa_ssp_master_info = {
@@ -272,68 +565,26 @@ static struct spi_board_info __initdata aximx50_boardinfo[] = { {
 } };
 
 /******************************************************/
-/* EGPIOs */
-
-
-/*
- * EGPIO (Xilinx CPLD)
- *
- * 7 32-bit aligned 8-bit registers: 3x output, 1x irq, 3x input
- */
-static struct resource egpio_resources[] = {
-	[0] = {
-		.start = PXA_CS4_PHYS,
-		.end   = PXA_CS4_PHYS + 0x20,
-		.flags = IORESOURCE_MEM,
-	},/*
-	[1] = {
-		.start = gpio_to_irq(GPIO13_MAGICIAN_CPLD_IRQ),
-		.end   = gpio_to_irq(GPIO13_MAGICIAN_CPLD_IRQ),
-		.flags = IORESOURCE_IRQ,
-	},*/
-};
-
-static struct htc_egpio_chip egpio_chips[] = {
-	[0] = {
-		.reg_start = 0,
-		.gpio_base = X50_EGPIO_BASE,
-		.num_gpios = 24,
-		.direction = HTC_EGPIO_OUTPUT,
-		//.initial_values = 0x40, /* EGPIO_MAGICIAN_GSM_RESET */
-	},/*
-	[1] = {
-		.reg_start = 4,
-		.gpio_base = MAGICIAN_EGPIO(4, 0),
-		.num_gpios = 24,
-		.direction = HTC_EGPIO_INPUT,
-	},*/
-};
-
-static struct htc_egpio_platform_data egpio_info = {
-	.reg_width    = 8,
-	.bus_width    = 32,
-	/*.irq_base     = IRQ_BOARD_START,
-	.num_irqs     = 4,
-	.ack_register = 3,*/
-	.chip         = egpio_chips,
-	.num_chips    = ARRAY_SIZE(egpio_chips),
-};
-
-static struct platform_device aximx50_egpio = {
-	.name          = "htc-egpio",
-	.id            = -1,
-	.resource      = egpio_resources,
-	.num_resources = ARRAY_SIZE(egpio_resources),
-	.dev = {
-		.platform_data = &egpio_info,
-	},
-};
-
-/******************************************************/
 
 static struct platform_device *devices[] __initdata = {
-    &aximx50_egpio,
     //&aximx50_bt,
+    &aximx50_gpio_keys_device,
+};
+
+/*
+  I2C
+*/
+
+static struct i2c_pxa_platform_data aximx50_i2c_info = {
+	.fast_mode = 1,
+	.use_pio = 1,
+};
+
+static struct i2c_board_info aximx50_i2c_board_info[] = {
+	{
+		.type		= "wm8750",
+		.addr		= 0x1a,
+	},
 };
 
 static void __init aximx50_map_io(void)
@@ -348,19 +599,21 @@ static void __init aximx50_init_irq(void)
 
 static void __init aximx50_init( void )
 {
-    int err;
     printk(KERN_NOTICE "Dell Axim x50/x51v initialization\n");
-
+	
     pxa2xx_mfp_config(ARRAY_AND_SIZE(aximx50_pin_config));
-    set_pxa_fb_info(&aximx50_fb_info_vga);
     
-    err = gpio_request(GPIO_NR_X50_TSC2046_CS, "ADS7846_CS");
-    if (err)
-        return;
-
-    gpio_direction_output(GPIO_NR_X50_TSC2046_CS, 1);
-    
-    pxa_set_i2c_info(NULL);
+    if (gpio_request(GPIO_NR_X50_TSC2046_CS, "ADS7846_CS"))
+    	printk(KERN_ERR "Unable to get CS GPIO\n");
+	else
+	    gpio_direction_output(GPIO_NR_X50_TSC2046_CS, 1);
+	    
+	aximx50_init_fpga();
+	aximx50_init_display();
+	
+	i2c_register_board_info(0, ARRAY_AND_SIZE(aximx50_i2c_board_info));
+    pxa_set_i2c_info(&aximx50_i2c_info);
+	//pxa27x_set_i2c_power_info(NULL);
     
     pxa2xx_set_spi_info(1, &pxa_ssp_master_info);
     spi_register_board_info(aximx50_boardinfo, ARRAY_SIZE(aximx50_boardinfo));
