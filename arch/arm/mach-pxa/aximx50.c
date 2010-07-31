@@ -260,42 +260,6 @@ static struct pxa2xx_udc_mach_info x50_udc_info = {
  * PXA Framebuffer
  */
 
-static u32 lcd_type;
-
-#define lcd_readl(off) __raw_readl(lcd_iobase + off)
-#define lcd_writel(off,val) __raw_writel(val, lcd_iobase + off)
-
-#define MBX_SYSRST (marathon_iobase + 0x10)
-#define MBX_LCDCFG (marathon_iobase + 0x60)
-
-#define MBX_LCDCFG_LCD1ISIN 0x00010000
-#define MBX_LCDCFG_IN565    0x20000000
-
-static void aximx50_pxafb_lcd_power(int on, struct fb_var_screeninfo *info)
-{
-	void __iomem *marathon_iobase;
-
-	if (lcd_type % 2 == 0) {
-		/* VGA Device */
-		/* AKA. Device with a 2700g */
-
-		if ((marathon_iobase = ioremap(0x0FFE0000, 0x1FFFF))) {
-			printk(KERN_DEBUG "Mapped 2700G Registers to 0x%08lx\n", (ulong)marathon_iobase);
-			printk(KERN_DEBUG "  LCD_CONFIG=0x%08x\n", readl(MBX_LCDCFG));
-			
-			writel(1, MBX_SYSRST);
-			mdelay(10);
-			//writel(readl(MBX_LCDCFG) | 0x80000, MBX_LCDCFG);
-
-			writel(readl(MBX_LCDCFG) | MBX_LCDCFG_LCD1ISIN | MBX_LCDCFG_IN565,
-			       MBX_LCDCFG); /* LCD1 is LCDIN */
-		}
-		else {
-			printk(KERN_ERR "Unable to map 2700G registers\n");
-		}
-	}
-}
-
 static struct pxafb_mode_info aximx50_pxafb_modes_vga[] = {
 	{
 		.pixclock	= 96153,
@@ -324,7 +288,6 @@ static struct pxafb_mach_info aximx50_fb_info_vga = {
 		,						// 0x0
 		//0x01b008f9,
 	.lccr3		= 0x04f00001,
-	.pxafb_lcd_power = aximx50_pxafb_lcd_power,
 };
 
 static struct pxafb_mode_info aximx50_pxafb_modes_qvga[] = {
@@ -355,7 +318,6 @@ static struct pxafb_mach_info aximx50_fb_info_qvga = {
 		,						// 0x0
 		//0x003008f9,
 	.lccr3		= 0x04900008,
-	.pxafb_lcd_power = aximx50_pxafb_lcd_power,
 };  
 
 /*
@@ -429,9 +391,20 @@ static struct platform_device aximx50_2700G = {
 };
 #endif
 
+static u32 lcd_type;
+
+#define lcd_readl(off) __raw_readl(lcd_iobase + off)
+#define lcd_writel(off,val) __raw_writel(val, lcd_iobase + off)
+
+#define MBX_SYSRST (marathon_iobase + 0x10)
+#define MBX_LCDCFG (marathon_iobase + 0x60)
+
+#define MBX_LCDCFG_LCD1ISIN 0x00010000
+#define MBX_LCDCFG_IN565    0x20000000
+
 static void __init aximx50_init_display(void)
 {
-	void __iomem *lcd_iobase;
+	void __iomem *marathon_iobase;
 	
 	aximx50_fpga_set(0x1E, 0x8);
 	udelay(1000);
@@ -461,38 +434,33 @@ static void __init aximx50_init_display(void)
 	else {
 #endif
 
-	/* Setup the PXA LCD controller */
-	
-	GAFR1_U |= 0xAAA00000;		/* GPIO 58-63 = AF2 */
-	GAFR2_L |= 0x0AAAAAAA;		/* GPIO 64-77 = AF2 */
-	GPDR1 |= 0xFC000000;		/* GPIO 58-63 = Output */
-	GPDR2 |= 0x0000CFFF;		/* GPIO 64-77 = Output */
-	
-	if ((lcd_iobase = ioremap(0x44000000, 0xFFFF))) {
-		/* Clear control registers */
-		lcd_writel(LCCR0, 0);
-		lcd_writel(LCCR1, 0);
-		lcd_writel(LCCR2, 0);
-		lcd_writel(LCCR3, 0);
-		lcd_writel(LCCR4, 0);
-		lcd_writel(LCCR5, 0);
-		
-		lcd_writel(FBR0, 0);
-		
-		/* Clear interrupts */
-		lcd_writel(LCSR, 0x7FF);
-		lcd_writel(LCSR1, 0x3E3F3F3F);
-	}
-	else {
-		printk(KERN_ERR "Unable to map PXA LCD registers\n");
-	}
-
 	if (lcd_type % 2) {
 		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA)\n");
 		set_pxa_fb_info(&aximx50_fb_info_qvga);
 	}
 	else {
 		printk(KERN_DEBUG "Using PXA Framebuffer (VGA)\n");
+
+		/* Setup the 2700g to pass LCD_IN (PXA LCD controller)
+		   through to LCD1 (built in LCD) */
+
+		if ((marathon_iobase = ioremap(0x0FFE0000, 0x1FFFF))) {
+			printk(KERN_DEBUG "Mapped 2700G Registers to 0x%08lx\n", (ulong)marathon_iobase);
+			printk(KERN_DEBUG "  LCD_CONFIG=0x%08x\n", readl(MBX_LCDCFG));
+				
+			writel(1, MBX_SYSRST);
+			mdelay(10);
+			//writel(readl(MBX_LCDCFG) | 0x80000, MBX_LCDCFG);
+
+			writel(readl(MBX_LCDCFG) | MBX_LCDCFG_LCD1ISIN | MBX_LCDCFG_IN565,
+			       MBX_LCDCFG); /* LCD1 is LCDIN */
+
+			iounmap(marathon_iobase);
+		}
+		else {
+			printk(KERN_ERR "Unable to map 2700G registers\n");
+		}
+
 		set_pxa_fb_info(&aximx50_fb_info_vga);
 	}
 
