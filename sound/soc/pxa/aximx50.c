@@ -321,6 +321,9 @@ static int __init aximx50_init(void)
 static void __exit aximx50_exit(void)
 {
     platform_device_unregister(aximx50_snd_device);
+
+	gpio_set_value(GPIO_NR_AXIMX50_AUDIO_PWR, 0);
+	gpio_free(GPIO_NR_AXIMX50_AUDIO_PWR);
 }
 
 module_init(aximx50_init);
