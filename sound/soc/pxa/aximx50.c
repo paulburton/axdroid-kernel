@@ -291,20 +291,31 @@ static struct platform_device *aximx50_snd_device;
 
 static int __init aximx50_init(void)
 {
-    int ret;
+    int err;
     
     aximx50_snd_device = platform_device_alloc("soc-audio", -1);
     if (!aximx50_snd_device)
         return -ENOMEM;
 
+	err = gpio_request(GPIO_NR_AXIMX50_AUDIO_PWR, "AXIMX50_AUDIO_PWR");
+	if (err) {
+		printk(KERN_ERR "aximx50: Unable to claim audio power GPIO\n");
+		return err;
+	}
+	err = gpio_direction_output(GPIO_NR_AXIMX50_AUDIO_PWR, 1);
+	if (err) {
+		printk(KERN_ERR "aximx50: Unable to set audio power GPIO to output\n");
+		return err;
+	}
+
     platform_set_drvdata(aximx50_snd_device, &aximx50_snd_devdata);
     aximx50_snd_devdata.dev = &aximx50_snd_device->dev;
-    ret = platform_device_add(aximx50_snd_device);
+    err = platform_device_add(aximx50_snd_device);
 
-    if (ret)
+    if (err)
         platform_device_put(aximx50_snd_device);
 
-    return ret;
+    return err;
 }
 
 static void __exit aximx50_exit(void)

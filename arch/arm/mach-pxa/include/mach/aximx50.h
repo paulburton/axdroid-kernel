@@ -40,17 +40,7 @@
 /* Buttons */
 #define GPIO_NR_AXIMX50_BTN_POWER           0
 
-/* CPLD */
-#define AXIMX50_EGPIO_BASE					0x80
-#define AXIMX50_EGPIO_REGSTART				0x1C
-#define __AXIMX50_EGPIO(reg,bit)			(AXIMX50_EGPIO_BASE + \
-                                			((reg >> 1) - AXIMX50_EGPIO_REGSTART)*8 + \
-                                			bit)
-
-#define AXIMX50_EGPIO_MARATHON				__AXIMX50_EGPIO(0x14, 3)
-#define AXIMX50_EGPIO_CODEC_POWER			__AXIMX50_EGPIO(0x1C, 1)
-#define AXIMX50_EGPIO_LCD_QVGA				__AXIMX50_EGPIO(0x1E, 0)
-#define AXIMX50_EGPIO_LCD_VENDOR			__AXIMX50_EGPIO(0x1E, 1)
-#define AXIMX50_EGPIO_LCD_DETECT			__AXIMX50_EGPIO(0x1E, 3)
+/* Audio */
+#define GPIO_NR_AXIMX50_AUDIO_PWR           82
 
 #endif

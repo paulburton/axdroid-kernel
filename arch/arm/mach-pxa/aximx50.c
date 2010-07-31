@@ -529,19 +529,12 @@ static struct platform_device *devices[] __initdata = {
 };
 
 /*
-  I2C
-*/
+ * I2C
+ */
 
 static struct i2c_pxa_platform_data aximx50_i2c_info = {
 	.fast_mode = 1,
-	.use_pio = 1,
-};
-
-static struct i2c_board_info aximx50_i2c_board_info[] = {
-	{
-		.type		= "wm8750",
-		.addr		= 0x1a,
-	},
+	.use_pio = 0,
 };
 
 static void __init aximx50_map_io(void)
@@ -568,7 +561,6 @@ static void __init aximx50_init( void )
 	aximx50_init_fpga();
 	aximx50_init_display();
 	
-	i2c_register_board_info(0, ARRAY_AND_SIZE(aximx50_i2c_board_info));
     pxa_set_i2c_info(&aximx50_i2c_info);
 	//pxa27x_set_i2c_power_info(NULL);
     
