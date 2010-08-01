@@ -173,6 +173,8 @@ static void aximx50_init_fpga(void)
 		printk(KERN_ERR "Unable to map FPGA!\n");
 		return;
 	}
+
+	aximx50_fpga_set(0x14, 0x8);
 }
 
 /******************************************************************************

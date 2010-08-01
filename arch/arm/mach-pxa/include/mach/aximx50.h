@@ -23,10 +23,6 @@
 #define GPIO_NR_X50_TSC2046_CS        24              /* TSC2047 Touchscreen chip select */
 #define GPIO_NR_X50_BT_PWR_EN         22              /* 1 when bluetooth is enabled */
 
-/* experimental values ?? */
-#define GPIO_NR_X50_MUTE_L            83
-#define GPIO_NR_X50_MUTE_R            96
-
 /* SD Card */
 #define GPIO_NR_AXIMX50_SD_POWER            120       //TODO: This is wrong
 #define GPIO_NR_AXIMX50_SD_DETECT           12

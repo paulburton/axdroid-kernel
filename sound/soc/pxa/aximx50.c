@@ -39,12 +39,19 @@
 static int aximx50_jack_func;
 static int aximx50_spk_func;
 
+extern void aximx50_fpga_set(uint offset, u16 val);
+extern void aximx50_fpga_clear(uint offset, u16 val);
+
 static void aximx50_ext_control(struct snd_soc_codec *codec)
 {
-	if (aximx50_spk_func == AXIMX50_SPK_ON)
+	if (aximx50_spk_func == AXIMX50_SPK_ON) {
+		aximx50_fpga_set(0x14, 0x02);
 		snd_soc_dapm_enable_pin(codec, "Internal Speaker");
-	else
+	}
+	else {
+		aximx50_fpga_clear(0x14, 0x02);
 		snd_soc_dapm_disable_pin(codec, "Internal Speaker");
+	}
 
 	switch (aximx50_jack_func) {
 
