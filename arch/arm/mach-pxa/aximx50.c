@@ -264,12 +264,12 @@ static struct pxa2xx_udc_mach_info x50_udc_info = {
 
 static struct pxafb_mode_info aximx50_pxafb_modes_vga[] = {
 	{
-		.pixclock	= 96153,
+		.pixclock	= 19230,
 		.bpp		= 16,
 		.xres		= 480,
 		.yres		= 640,
 		.hsync_len	= 64,
-		.vsync_len	= 5,
+		.vsync_len	= 2,
 		.left_margin	= 17,
 		.upper_margin	= 1,
 		.right_margin	= 87,
@@ -280,15 +280,7 @@ static struct pxafb_mode_info aximx50_pxafb_modes_vga[] = {
 static struct pxafb_mach_info aximx50_fb_info_vga = {
 	.modes		= aximx50_pxafb_modes_vga,
 	.num_modes	= ARRAY_SIZE(aximx50_pxafb_modes_vga),
-	.lccr0		= LCCR0_ENB | LCCR0_LDM |		// 0x9
-		LCCR0_SFM | LCCR0_IUM | LCCR0_EFM | LCCR0_Act |	// 0xf
-		LCCR0_QDM |					// 0x8
-								// 0x0
-								// 0x0
-		LCCR0_BM  | LCCR0_OUM | LCCR0_RDSTM |		// 0xb
-		LCCR0_CMDIM					// 0x1
-		,						// 0x0
-		//0x01b008f9,
+	.lccr0		= LCCR0_Act | LCCR0_RDSTM | LCCR0_CMDIM,
 	.lccr3		= 0x04f00001,
 };
 
