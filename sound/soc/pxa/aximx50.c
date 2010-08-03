@@ -18,6 +18,7 @@
 #include <sound/pcm.h>
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
+#include <sound/jack.h>
 
 #include <asm/mach-types.h>
 #include <mach/aximx50.h>
@@ -38,6 +39,9 @@
 
 static int aximx50_jack_func;
 static int aximx50_spk_func;
+
+static struct snd_soc_jack aximx50_audio_jack;
+static struct snd_soc_card snd_soc_aximx50;
 
 extern void aximx50_fpga_set(uint offset, u16 val);
 extern void aximx50_fpga_clear(uint offset, u16 val);
@@ -209,6 +213,21 @@ static struct snd_soc_ops aximx50_ops = {
     .hw_params = aximx50_hw_params,
 };
 
+static struct snd_soc_jack_pin aximx50_audio_jack_pins[] = {
+	{
+		.pin    = "Headphone Jack",
+		.mask   = SND_JACK_HEADPHONE,
+	},
+};
+
+static struct snd_soc_jack_gpio aximx50_audio_jack_gpios[] = {
+	[0] = {
+		.name           = "hp-gpio",
+		.report         = GPIO_NR_AXIMX50_AUDIO_JACKDETECT,
+		.debounce_time	= 200,
+	},
+};
+
 static int aximx50_wm8750_init(struct snd_soc_codec *codec)
 {
 	int err;
@@ -233,8 +252,27 @@ static int aximx50_wm8750_init(struct snd_soc_codec *codec)
 	if (err)
 		return err;
 
-	snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
-	snd_soc_dapm_sync(codec);
+	err = snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
+	if (err)
+		return err;
+
+	err = snd_soc_dapm_sync(codec);
+	if (err)
+		return err;
+
+	/* Jack detection API stuff */
+	err = snd_soc_jack_new(&snd_soc_aximx50, "Headphone Jack",
+				SND_JACK_HEADPHONE, &aximx50_audio_jack);
+	if (err)
+		return err;
+
+	err = snd_soc_jack_add_pins(&aximx50_audio_jack,
+	          ARRAY_SIZE(aximx50_audio_jack_pins), aximx50_audio_jack_pins);
+	if (err)
+		return err;
+
+	err = snd_soc_jack_add_gpios(&aximx50_audio_jack,
+	          ARRAY_SIZE(aximx50_audio_jack_gpios), aximx50_audio_jack_gpios);
 
 	return 0;
 }

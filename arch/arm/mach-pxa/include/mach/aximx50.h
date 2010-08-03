@@ -38,5 +38,6 @@
 
 /* Audio */
 #define GPIO_NR_AXIMX50_AUDIO_PWR           82
+#define GPIO_NR_AXIMX50_AUDIO_JACKDETECT	83
 
 #endif
