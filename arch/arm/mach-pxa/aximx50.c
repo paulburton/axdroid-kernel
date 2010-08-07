@@ -286,32 +286,24 @@ static struct pxafb_mach_info aximx50_fb_info_vga = {
 
 static struct pxafb_mode_info aximx50_pxafb_modes_qvga[] = {
 	{
-		.pixclock	= 96153,
+		.pixclock	= 134615,
 		.bpp		= 16,
 		.xres		= 240,
 		.yres		= 320,
 		.hsync_len	= 20,
-		.vsync_len	= 4,
-		.left_margin	= 59,
-		.upper_margin	= 4,
-		.right_margin	= 16,
-		.lower_margin	= 0,
+		.vsync_len	= 1,
+		.left_margin	= 21,
+		.upper_margin	= 8,
+		.right_margin	= 51,
+		.lower_margin	= 1,
 	},
 };
 
 static struct pxafb_mach_info aximx50_fb_info_qvga = {
 	.modes		= aximx50_pxafb_modes_qvga,
 	.num_modes	= ARRAY_SIZE(aximx50_pxafb_modes_qvga),
-	.lccr0		= LCCR0_ENB | LCCR0_LDM |		// 0x9
-		LCCR0_SFM | LCCR0_IUM | LCCR0_EFM | LCCR0_Act |	// 0xf
-		LCCR0_QDM |					// 0x8
-								// 0x0
-								// 0x0
-		LCCR0_BM  | LCCR0_OUM				// 0x3
-								// 0x0
-		,						// 0x0
-		//0x003008f9,
-	.lccr3		= 0x04900008,
+	.lccr0		= LCCR0_Pas | LCCR0_RDSTM | LCCR0_CMDIM,
+	.lccr3		= 0x04f00007,
 };  
 
 /*
