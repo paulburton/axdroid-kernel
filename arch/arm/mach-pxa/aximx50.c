@@ -18,8 +18,8 @@
 #include <linux/gpio_keys.h>
 #include <linux/i2c.h>
 #include <linux/clk.h>
-
-#include <linux/mfd/htc-egpio.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/plat-ram.h>
 
 #include <linux/spi/spi.h>
 #include <linux/spi/ads7846.h>
@@ -309,6 +309,30 @@ static struct pxafb_mach_info aximx50_fb_info_qvga = {
 /*
  * Intel 2700g (Marathon)
  */
+
+#ifdef CONFIG_AXIMX50_VIDEOMTD
+static struct resource aximx50_vram_resources = {
+	.start = PXA_CS3_PHYS,
+	.end = PXA_CS3_PHYS + SZ_16M-1,
+	.flags = IORESOURCE_MEM,
+};
+
+static struct platdata_mtd_ram aximx50_vram_pdata = {
+	.mapname = "2700g Video SDRAM",
+	.bankwidth = 2,
+};
+
+static struct platform_device aximx50_vram = {
+	.name = "mtd-ram",
+	.id = 0,
+	.resource = &aximx50_vram_resources,
+	.num_resources = 1,
+	.dev = {
+		.platform_data = &aximx50_vram_pdata,
+	},
+};
+#endif
+
 #if defined(CONFIG_FB_MBX) || defined(CONFIG_FB_MBX_MODULE)
 static u64 fb_dma_mask = ~(u64)0;
 
@@ -382,8 +406,27 @@ static u32 lcd_type;
 #define lcd_readl(off) __raw_readl(lcd_iobase + off)
 #define lcd_writel(off,val) __raw_writel(val, lcd_iobase + off)
 
-#define MBX_SYSRST (marathon_iobase + 0x10)
-#define MBX_LCDCFG (marathon_iobase + 0x60)
+#define MBX_SYSCFG    (marathon_iobase + 0x00)
+#define MBX_SYSRST    (marathon_iobase + 0x10)
+#define MBX_SYSCLKSRC (marathon_iobase + 0x2c)
+#define MBX_CLKSLEEP  (marathon_iobase + 0x34)
+#define MBX_COREPLL   (marathon_iobase + 0x38)
+#define MBX_VOVRCLK   (marathon_iobase + 0x44)
+#define MBX_PIXCLK    (marathon_iobase + 0x48)
+#define MBX_MEMCLK    (marathon_iobase + 0x4c)
+#define MBX_M24CLK    (marathon_iobase + 0x50)
+#define MBX_MBXCLK    (marathon_iobase + 0x54)
+#define MBX_SDCLK     (marathon_iobase + 0x58)
+#define MBX_PIXCLKDIV (marathon_iobase + 0x5c)
+#define MBX_LCDCFG    (marathon_iobase + 0x60)
+#define MBX_ODFBPWR   (marathon_iobase + 0x64)
+#define MBX_GPIOCFG   (marathon_iobase + 0x6c)
+#define MBX_LMCFG     (marathon_iobase + 0x1004)
+#define MBX_LMPWR     (marathon_iobase + 0x1008)
+#define MBX_LMTYPE    (marathon_iobase + 0x1014)
+#define MBX_LMTIM     (marathon_iobase + 0x1018)
+#define MBX_LMREFRESH (marathon_iobase + 0x101c)
+#define MBX_LMPROTMAX (marathon_iobase + 0x1024)
 
 #define MBX_LCDCFG_LCD1ISIN 0x00010000
 #define MBX_LCDCFG_IN565    0x20000000
@@ -436,10 +479,39 @@ static void __init aximx50_init_display(void)
 				
 			writel(1, MBX_SYSRST);
 			mdelay(10);
-			//writel(readl(MBX_LCDCFG) | 0x80000, MBX_LCDCFG);
 
 			writel(readl(MBX_LCDCFG) | MBX_LCDCFG_LCD1ISIN | MBX_LCDCFG_IN565,
 			       MBX_LCDCFG); /* LCD1 is LCDIN */
+
+			writel(0x00000001, MBX_GPIOCFG);
+
+#ifdef CONFIG_AXIMX50_VIDEOMTD
+			/* Enable SDRAM access */
+
+			writel(0xffffff0c, MBX_SYSCFG); udelay(1000);
+
+			writel(0x00000002, MBX_SYSCLKSRC); udelay(1000);
+			writel(0x00000000, MBX_CLKSLEEP); udelay(1000);
+			writel(0x00000bb1, MBX_COREPLL); udelay(1000);
+
+			writel(0x00000000, MBX_VOVRCLK); udelay(1000);
+			writel(0x00000000, MBX_PIXCLK); udelay(1000);
+			writel(0x00000001, MBX_MEMCLK); udelay(1000);
+			writel(0x00000001, MBX_M24CLK); udelay(1000);
+			writel(0x00000001, MBX_MBXCLK); udelay(1000);
+			writel(0x00000001, MBX_SDCLK); udelay(1000);
+			writel(0x00000001, MBX_PIXCLKDIV); udelay(1000);
+
+			writel(0x00000027, MBX_LMCFG); udelay(1000);
+			writel(0x00000000, MBX_LMPWR); udelay(1000);
+			writel(0x00073392, MBX_LMTIM); udelay(1000);
+			writel(0x00000615, MBX_LMREFRESH); udelay(1000);
+			writel(0x00000ac8, MBX_LMTYPE); udelay(1000);
+			writel(0x03fdfffc, MBX_LMPROTMAX); udelay(1000);
+			writel(0x00000000, MBX_LMPWR); udelay(1000);
+
+			writel(0x00000000, MBX_ODFBPWR); udelay(1000);
+#endif /* CONFIG_AXIMX50_VIDEOMTD */
 
 			iounmap(marathon_iobase);
 		}
@@ -448,6 +520,10 @@ static void __init aximx50_init_display(void)
 		}
 
 		set_pxa_fb_info(&aximx50_fb_info_vga);
+
+#ifdef CONFIG_AXIMX50_VIDEOMTD
+		platform_device_register(&aximx50_vram);
+#endif
 	}
 
 #if defined(CONFIG_FB_MBX) || defined(CONFIG_FB_MBX_MODULE)

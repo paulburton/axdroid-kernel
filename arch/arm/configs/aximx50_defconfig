@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.32.9
-# Wed Aug  4 18:52:55 2010
+# Sat Aug  7 17:36:20 2010
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -213,6 +213,7 @@ CONFIG_ARCH_PXA=y
 # CONFIG_MACH_BALLOON3 is not set
 # CONFIG_ARCH_PXA_IDP is not set
 CONFIG_MACH_X50=y
+CONFIG_AXIMX50_VIDEOMTD=y
 # CONFIG_PXA_SHARPSL is not set
 # CONFIG_ARCH_VIPER is not set
 # CONFIG_ARCH_PXA_ESERIES is not set
@@ -531,7 +532,7 @@ CONFIG_MTD_CFI_I1=y
 CONFIG_MTD_CFI_I2=y
 # CONFIG_MTD_CFI_I4 is not set
 # CONFIG_MTD_CFI_I8 is not set
-# CONFIG_MTD_RAM is not set
+CONFIG_MTD_RAM=y
 # CONFIG_MTD_ROM is not set
 # CONFIG_MTD_ABSENT is not set
 
@@ -539,7 +540,7 @@ CONFIG_MTD_CFI_I2=y
 # Mapping drivers for chip access
 #
 # CONFIG_MTD_COMPLEX_MAPPINGS is not set
-# CONFIG_MTD_PLATRAM is not set
+CONFIG_MTD_PLATRAM=y
 
 #
 # Self-contained MTD device drivers
@@ -548,7 +549,7 @@ CONFIG_MTD_CFI_I2=y
 # CONFIG_MTD_M25P80 is not set
 # CONFIG_MTD_SST25L is not set
 # CONFIG_MTD_SLRAM is not set
-CONFIG_MTD_PHRAM=y
+# CONFIG_MTD_PHRAM is not set
 # CONFIG_MTD_MTDRAM is not set
 # CONFIG_MTD_BLOCK2MTD is not set
 

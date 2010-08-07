@@ -103,6 +103,14 @@ config MACH_X50
 	  series of PDAs. Currently there is only basic support for this
 	  type of PDAs.
 
+config AXIMX50_VIDEOMTD
+	bool "Expose unused 2700g video RAM as an MTD device"
+	depends on MACH_X50
+	select MTD_PLATRAM
+	help
+	  Say Y here to expose any 2700g video RAM that is not in
+	  use by the system as an MTD device.
+
 config PXA_SHARPSL
 	bool "SHARP Zaurus SL-5600, SL-C7xx and SL-Cxx00 Models"
 	select SHARP_SCOOP
