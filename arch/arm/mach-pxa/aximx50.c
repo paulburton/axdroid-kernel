@@ -175,6 +175,7 @@ static void aximx50_init_fpga(void)
 	}
 
 	aximx50_fpga_set(0x14, 0x8);
+	aximx50_fpga_set(0x1c, 0x6);
 }
 
 /******************************************************************************
@@ -630,8 +631,12 @@ static void __init aximx50_init( void )
     spi_register_board_info(aximx50_boardinfo, ARRAY_SIZE(aximx50_boardinfo));
     
     pxa_set_mci_info(&aximx50_mci_platform_data);
-    pxa_set_udc_info(&x50_udc_info);
     pxa_set_keypad_info(&x50_kbd);
+
+	/* USB power? */
+	aximx50_fpga_set(0x1c, 0x8);
+
+    pxa_set_udc_info(&x50_udc_info);
     
     platform_add_devices(devices, ARRAY_SIZE(devices));
 }
