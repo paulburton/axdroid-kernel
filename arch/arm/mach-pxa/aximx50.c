@@ -300,12 +300,19 @@ static struct pxafb_mode_info aximx50_pxafb_modes_qvga[] = {
 	},
 };
 
-static struct pxafb_mach_info aximx50_fb_info_qvga = {
+static struct pxafb_mach_info aximx50_fb_info_qvga1 = {
 	.modes		= aximx50_pxafb_modes_qvga,
 	.num_modes	= ARRAY_SIZE(aximx50_pxafb_modes_qvga),
 	.lccr0		= LCCR0_Pas | LCCR0_RDSTM | LCCR0_CMDIM,
 	.lccr3		= 0x04f00007,
-};  
+};
+
+static struct pxafb_mach_info aximx50_fb_info_qvga3 = {
+	.modes		= aximx50_pxafb_modes_qvga,
+	.num_modes	= ARRAY_SIZE(aximx50_pxafb_modes_qvga),
+	.lccr0		= LCCR0_Act | LCCR0_RDSTM | LCCR0_CMDIM,
+	.lccr3		= 0x04f00007,
+};
 
 /*
  * Intel 2700g (Marathon)
@@ -464,9 +471,13 @@ static void __init aximx50_init_display(void)
 	else {
 #endif
 
-	if (lcd_type % 2) {
-		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA)\n");
-		set_pxa_fb_info(&aximx50_fb_info_qvga);
+	if (lcd_type == 1) {
+		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA Type 1)\n");
+		set_pxa_fb_info(&aximx50_fb_info_qvga1);
+	}
+	else if (lcd_type == 3) {
+		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA Type 3)\n");
+		set_pxa_fb_info(&aximx50_fb_info_qvga3);
 	}
 	else {
 		printk(KERN_DEBUG "Using PXA Framebuffer (VGA)\n");
