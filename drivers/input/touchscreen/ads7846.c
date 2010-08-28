@@ -627,7 +627,7 @@ static void ads7846_rx(void *ads)
 			xtmp = x;
 			ytmp = y;
 
-			if (aximx50_is_x51 == -1) {
+			/*if (aximx50_is_x51 == -1) {
 				dev_dbg(&ts->spi->dev, "%d,%d\n", x, y);
 
 				if (y > x)
@@ -639,7 +639,7 @@ static void ads7846_rx(void *ads)
 					dev_info(&ts->spi->dev, "aximx50: decided I'm an X5%s\n",
 					         aximx50_is_x51 ? "1" : "0");
 				}
-			}
+			}*/
 
 			y = (((xtmp-176)*173)/1000);
 			x = 480-(((ytmp-256)*136)/1000);
