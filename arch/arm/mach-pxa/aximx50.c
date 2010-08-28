@@ -181,11 +181,22 @@ static void aximx50_init_fpga(void)
 /******************************************************************************
  * SD/MMC card controller
  ******************************************************************************/
+static void mci_setpower(struct device *dev, unsigned int vdd)
+{
+	struct pxamci_platform_data *p_d = dev->platform_data;
+
+	if ((1 << vdd) & p_d->ocr_mask)
+		aximx50_fpga_set(0x16, 0x01);
+	else
+		aximx50_fpga_clear(0x16, 0x01);
+}
+
 static struct pxamci_platform_data aximx50_mci_platform_data = {
-	.ocr_mask		= MMC_VDD_32_33 | MMC_VDD_33_34,
-	.gpio_card_detect	= GPIO_NR_AXIMX50_SD_DETECT,
-	.gpio_card_ro		= GPIO_NR_AXIMX50_SD_READONLY,
-	.gpio_power		= GPIO_NR_AXIMX50_SD_POWER,
+	.ocr_mask           = MMC_VDD_32_33 | MMC_VDD_33_34,
+	.gpio_card_detect   = GPIO_NR_AXIMX50_SD_DETECT,
+	.gpio_card_ro       = GPIO_NR_AXIMX50_SD_READONLY,
+	.gpio_power         = -1,
+	.setpower           = mci_setpower,
 };
 
 /****************************************************************
