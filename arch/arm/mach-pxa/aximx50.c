@@ -18,6 +18,7 @@
 #include <linux/gpio_keys.h>
 #include <linux/i2c.h>
 #include <linux/clk.h>
+#include <linux/module.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/plat-ram.h>
 
@@ -155,12 +156,14 @@ void aximx50_fpga_set(uint offset, u16 val)
 	aximx50_fpga_cache[offset / sizeof(u16)] |= val;
 	aximx50_fpga[offset / sizeof(u16)] = aximx50_fpga_cache[offset / sizeof(u16)];
 }
+EXPORT_SYMBOL(aximx50_fpga_set);
 
 void aximx50_fpga_clear(uint offset, u16 val)
 {
 	aximx50_fpga_cache[offset / sizeof(u16)] |= val;
 	aximx50_fpga[offset / sizeof(u16)] = aximx50_fpga_cache[offset / sizeof(u16)];
 }
+EXPORT_SYMBOL(aximx50_fpga_clear);
 
 u16 aximx50_fpga_read(uint offset)
 {
