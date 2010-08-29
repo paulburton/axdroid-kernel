@@ -28,10 +28,14 @@
 #define GPIO_NR_AXIMX50_SD_DETECT           12
 #define GPIO_NR_AXIMX50_SD_READONLY         27
 
-/* PCMCIA (WiFi) */
-#define GPIO_NR_AXIMX50_PCMCIA_READY        38        //TODO: Unsure about these
-#define GPIO_NR_AXIMX50_PCMCIA_POWER        107
-#define GPIO_NR_AXIMX50_PCMCIA_RESET        89
+/* PCMCIA Socket 0: WiFi */
+#define GPIO_NR_AXIMX50_WIFI_RESET          89
+#define GPIO_NR_AXIMX50_WIFI_IRQ            107
+
+/* PCMCIA Socket 1: CF */
+#define GPIO_NR_AXIMX50_PCMCIA_DETECT1	    13
+#define GPIO_NR_AXIMX50_PCMCIA_RESET1       36
+#define GPIO_NR_AXIMX50_PCMCIA_READY1       84
 
 /* Buttons */
 #define GPIO_NR_AXIMX50_BTN_POWER           0
@@ -39,5 +43,9 @@
 /* Audio */
 #define GPIO_NR_AXIMX50_AUDIO_PWR           82
 #define GPIO_NR_AXIMX50_AUDIO_JACKDETECT	83
+
+/* CPLD/eGPIO */
+extern void aximx50_fpga_set(uint offset, u16 val);
+extern void aximx50_fpga_clear(uint offset, u16 val);
 
 #endif
