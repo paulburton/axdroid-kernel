@@ -274,6 +274,62 @@ static struct pxa2xx_udc_mach_info x50_udc_info = {
 //  .gpio_pullup =
 };
 
+/*
+ * Touchscreen
+ */
+
+/* ADS7846 is connected through SSP ... */
+static struct pxa2xx_spi_master pxa_ssp_master_info = {
+    .num_chipselect = 3, /* Matches the number of chips attached to NSSP */
+//  .clock_enable = CKEN_SSP1,
+    .enable_dma = 1,
+};
+
+static void ads7846_cs(u32 command)
+{
+    gpio_set_value(GPIO_NR_X50_TSC2046_CS, !(command == PXA2XX_CS_ASSERT));
+}
+
+static int aximx50_ads7846_pendown_state(void)
+{
+    return !gpio_get_value(GPIO_NR_X50_PEN_IRQ_N);
+}
+
+static struct pxa2xx_spi_chip ads_hw = {
+//  .tx_threshold       = 12,
+//  .rx_threshold       = 12,
+//  .dma_burst_size     = 8,
+    .cs_control     = ads7846_cs,
+};
+
+static struct ads7846_platform_data aximx50_ts_info = {
+    .model              = 7846,
+    .vref_delay_usecs   = 100,  /* internal, no capacitor */
+    .settle_delay_usecs = 150,
+    .x_min              = 1,
+    .x_max              = 480,
+    .y_min              = 1,
+    .y_max              = 640,
+	.swap_xy            = 1,
+    .pressure_min       = 1,
+    .pressure_max       = 512,
+    .debounce_max       = 20,
+    .debounce_tol       = 10,
+    .debounce_rep       = 1,
+//  .get_pendown_state  = &aximx50_ads7846_pendown_state,
+    .gpio_pendown       = GPIO_NR_X50_PEN_IRQ_N,
+};
+
+static struct spi_board_info __initdata aximx50_boardinfo[] = { {
+    .modalias         = "ads7846",
+    .platform_data    = &aximx50_ts_info,
+    .controller_data  = &ads_hw,
+    .irq              = X50_IRQ(PEN_IRQ_N),
+    .max_speed_hz     = 100000 /* max sample rate at 3V */
+                        * 26 /* command + data + overhead */,
+    .bus_num          = 1,
+    .chip_select      = 0,
+} };
 
 /*
  * PXA Framebuffer
@@ -503,12 +559,16 @@ static void __init aximx50_init_display(void)
 #endif
 
 	if (lcd_type == 1) {
+		/* X51 */
 		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA Type 1)\n");
 		set_pxa_fb_info(&aximx50_fb_info_qvga1);
 	}
 	else if (lcd_type == 3) {
+		/* X50 */
 		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA Type 3)\n");
 		set_pxa_fb_info(&aximx50_fb_info_qvga3);
+
+		aximx50_ts_info.swap_xy = 0;
 	}
 	else {
 		printk(KERN_DEBUG "Using PXA Framebuffer (VGA)\n");
@@ -574,57 +634,8 @@ static void __init aximx50_init_display(void)
 #endif
 }
 
-/* ADS7846 is connected through SSP ... */
-static struct pxa2xx_spi_master pxa_ssp_master_info = {
-    .num_chipselect = 3, /* Matches the number of chips attached to NSSP */
-//  .clock_enable = CKEN_SSP1,
-    .enable_dma = 1,
-};
 
-static void ads7846_cs(u32 command)
-{
-    gpio_set_value(GPIO_NR_X50_TSC2046_CS, !(command == PXA2XX_CS_ASSERT));
-}
 
-static int aximx50_ads7846_pendown_state(void)
-{
-    return !gpio_get_value(GPIO_NR_X50_PEN_IRQ_N);
-}
-
-static struct pxa2xx_spi_chip ads_hw = {
-//  .tx_threshold       = 12,
-//  .rx_threshold       = 12,
-//  .dma_burst_size     = 8,
-    .cs_control     = ads7846_cs,
-};
-
-static const struct ads7846_platform_data aximx50_ts_info = {
-    .model              = 7846,
-    .vref_delay_usecs   = 100,  /* internal, no capacitor */
-    .settle_delay_usecs = 150,
-    .x_min              = 1,
-    .x_max              = 480,
-    .y_min              = 1,
-    .y_max              = 640,
-    .pressure_min       = 1,
-    .pressure_max       = 512,
-    .debounce_max       = 20,
-    .debounce_tol       = 10,
-    .debounce_rep       = 1,
-//  .get_pendown_state  = &aximx50_ads7846_pendown_state,
-    .gpio_pendown       = GPIO_NR_X50_PEN_IRQ_N,
-};
-
-static struct spi_board_info __initdata aximx50_boardinfo[] = { {
-    .modalias         = "ads7846",
-    .platform_data    = &aximx50_ts_info,
-    .controller_data  = &ads_hw,
-    .irq              = X50_IRQ(PEN_IRQ_N),
-    .max_speed_hz     = 100000 /* max sample rate at 3V */
-                        * 26 /* command + data + overhead */,
-    .bus_num          = 1,
-    .chip_select      = 0,
-} };
 
 /******************************************************/
 

@@ -528,18 +528,6 @@ static void null_wait_for_sync(void)
  * touchscreen events and reactivates the timer (or IRQ) as appropriate.
  */
 
-#ifdef CONFIG_MACH_X50
-/*
- * -1 = Not decided
- *  0 = X50(v)
- *  1 = X51(v)
- */
-#define AXIMX50_DETECT_SAMPLES 50
-static signed char aximx50_is_x51 = -1;
-static unsigned int aximx50_detect_countdown = AXIMX50_DETECT_SAMPLES;
-static unsigned int aximx50_detect_likelyx51 = 0;
-#endif
-
 static void ads7846_rx(void *ads)
 {
 	struct ads7846		*ts = ads;
@@ -619,31 +607,9 @@ static void ads7846_rx(void *ads)
 			swap(x, y);
 		
 #ifdef CONFIG_MACH_X50
-		/* This is an ugly ugly hack */
-		/* Look away now if you would like to preserve your sanity */
-
-		if (aximx50_is_x51 != 0) {
-			int xtmp, ytmp;
-			xtmp = x;
-			ytmp = y;
-
-			/*if (aximx50_is_x51 == -1) {
-				dev_dbg(&ts->spi->dev, "%d,%d\n", x, y);
-
-				if (y > x)
-					aximx50_detect_likelyx51++;
-
-				if (!(aximx50_detect_countdown--)) {
-					aximx50_is_x51 = (aximx50_detect_likelyx51 >= (AXIMX50_DETECT_SAMPLES / 2)) ? 1 : 0;
-
-					dev_info(&ts->spi->dev, "aximx50: decided I'm an X5%s\n",
-					         aximx50_is_x51 ? "1" : "0");
-				}
-			}*/
-
-			y = (((xtmp-176)*173)/1000);
-			x = 480-(((ytmp-256)*136)/1000);
-		}
+		/* TODO: Tidy this up */
+		x = 480-(((x-256)*136)/1000);
+		y = (((y-176)*173)/1000);
 #endif
 
 		input_report_abs(input, ABS_X, x);
