@@ -301,7 +301,29 @@ static struct pxafb_mach_info aximx50_fb_info_vga = {
 	.lccr3		= 0x04f00001,
 };
 
-static struct pxafb_mode_info aximx50_pxafb_modes_qvga[] = {
+static struct pxafb_mode_info aximx50_pxafb_modes_qvga1[] = {
+	{
+		.pixclock	= 19230,
+		.bpp		= 16,
+		.xres		= 240,
+		.yres		= 320,
+		.hsync_len	= 20,
+		.vsync_len	= 1,
+		.left_margin	= 21,
+		.upper_margin	= 8,
+		.right_margin	= 51,
+		.lower_margin	= 1,
+	},
+};
+
+static struct pxafb_mach_info aximx50_fb_info_qvga1 = {
+	.modes		= aximx50_pxafb_modes_qvga1,
+	.num_modes	= ARRAY_SIZE(aximx50_pxafb_modes_qvga1),
+	.lccr0		= LCCR0_Pas | LCCR0_RDSTM | LCCR0_CMDIM,
+	.lccr3		= 0x04f00007,
+};
+
+static struct pxafb_mode_info aximx50_pxafb_modes_qvga3[] = {
 	{
 		.pixclock	= 134615,
 		.bpp		= 16,
@@ -316,16 +338,9 @@ static struct pxafb_mode_info aximx50_pxafb_modes_qvga[] = {
 	},
 };
 
-static struct pxafb_mach_info aximx50_fb_info_qvga1 = {
-	.modes		= aximx50_pxafb_modes_qvga,
-	.num_modes	= ARRAY_SIZE(aximx50_pxafb_modes_qvga),
-	.lccr0		= LCCR0_Pas | LCCR0_RDSTM | LCCR0_CMDIM,
-	.lccr3		= 0x04f00007,
-};
-
 static struct pxafb_mach_info aximx50_fb_info_qvga3 = {
-	.modes		= aximx50_pxafb_modes_qvga,
-	.num_modes	= ARRAY_SIZE(aximx50_pxafb_modes_qvga),
+	.modes		= aximx50_pxafb_modes_qvga3,
+	.num_modes	= ARRAY_SIZE(aximx50_pxafb_modes_qvga3),
 	.lccr0		= LCCR0_Act | LCCR0_RDSTM | LCCR0_CMDIM,
 	.lccr3		= 0x04f00007,
 };
