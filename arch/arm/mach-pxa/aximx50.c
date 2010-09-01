@@ -180,6 +180,7 @@ static void aximx50_init_fpga(void)
 	}
 
 	aximx50_fpga_set(0x14, 0x8);
+	aximx50_fpga_set(0x16, 0x1);     /* Start with SD powered up */
 	aximx50_fpga_set(0x1c, 0x6);
 }
 
