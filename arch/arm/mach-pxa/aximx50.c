@@ -146,6 +146,14 @@ static unsigned long aximx50_pin_config[] __initdata = {
     GPIO105_KP_MKOUT_2,
 };
 
+#define MACHINE_X50  0x00
+#define MACHINE_X51  0x10
+#define MACHINE_QVGA 0x00
+#define MACHINE_VGA  0x01
+
+static u32 machine_type;
+static u32 lcd_type;
+
 /*
  * FPGA
  */
@@ -182,6 +190,81 @@ static void aximx50_init_fpga(void)
 	aximx50_fpga_set(0x14, 0x8);
 	aximx50_fpga_set(0x16, 0x1);     /* Start with SD powered up */
 	aximx50_fpga_set(0x1c, 0x6);
+}
+
+/*
+ * Machine Detection
+ */
+
+int aximx50_detect_machine(void)
+{
+	void __iomem *docregs_iobase;
+	__u16 id0, id1;
+
+	machine_type = 0;
+
+	/* First we'll see if we have a DOC G3 */
+	docregs_iobase = ioremap_nocache(0x00201000, 0x7FF);
+	if (!docregs_iobase) {
+		printk(KERN_ERR "Unable to map DOC register IO space!\n");
+		return -ENXIO;
+	}
+
+	readb(docregs_iobase + 0x0c);
+	writeb(0x5, docregs_iobase + 0x0c);
+	wmb();
+	writeb(0xA, docregs_iobase + 0x72);
+	wmb();
+
+	writew(0x1000, docregs_iobase + 0x1a);
+	wmb();
+	id0 = readw(docregs_iobase + 0x00);
+
+	writew(0x1074, docregs_iobase + 0x1a);
+	wmb();
+	id1 = readw(docregs_iobase + 0x74);
+
+	printk(KERN_DEBUG "DOC ID0 = 0x%04x\n", id0);
+	printk(KERN_DEBUG "DOC ID1 = 0x%04x\n", id1);
+
+	if (id0 == 0x0200 && id1 == 0xfdff) {
+		/* The device contains a DOC G3 flash chip */
+		/* Thus, it's an X51(v) */
+
+		machine_type |= MACHINE_X51;
+	}
+
+	iounmap(docregs_iobase);
+
+	/* Now check the LCD type */
+	aximx50_fpga_set(0x1E, 0x8);
+	udelay(1000);
+	lcd_type = aximx50_fpga_read(0x1E) & 3;
+	udelay(1000);
+	aximx50_fpga_clear(0x1E, 0x8);
+	
+	/*
+		From AximSDK.dll, it seems:
+
+		0 = 3.7" Sharp
+		1 = 3.5" Sharp
+		2 = 3.7" Samsung
+		3 = 3.5" Sharp
+	*/
+
+	printk(KERN_DEBUG "Detected display: ");
+	printk(lcd_type % 2 ? "3.5\" " : "3.7\" ");
+	printk(lcd_type == 2 ? "Samsung\n" : "Sharp\n");
+
+	if ((lcd_type % 2) == 0)
+		machine_type |= MACHINE_VGA;
+
+	printk(KERN_DEBUG "Detected machine: X5%d%s (0x%02x)\n",
+           (machine_type & MACHINE_X51) ? 1 : 0,
+	       (machine_type & MACHINE_VGA) ? "v" : "",
+	       machine_type);
+
+	return 0;
 }
 
 /******************************************************************************
@@ -497,8 +580,6 @@ static struct platform_device aximx50_2700G = {
 };
 #endif
 
-static u32 lcd_type;
-
 #define lcd_readl(off) __raw_readl(lcd_iobase + off)
 #define lcd_writel(off,val) __raw_writel(val, lcd_iobase + off)
 
@@ -530,25 +611,6 @@ static u32 lcd_type;
 static void __init aximx50_init_display(void)
 {
 	void __iomem *marathon_iobase;
-	
-	aximx50_fpga_set(0x1E, 0x8);
-	udelay(1000);
-	lcd_type = aximx50_fpga_read(0x1E) & 3;
-	udelay(1000);
-	aximx50_fpga_clear(0x1E, 0x8);
-	
-	/*
-		From AximSDK.dll, it seems:
-
-		0 = 3.7" Sharp
-		1 = 3.5" Sharp
-		2 = 3.7" Samsung
-		3 = 3.5" Sharp
-	*/
-
-	printk(KERN_DEBUG "Detected display: ");
-	printk(lcd_type % 2 ? "3.5\" " : "3.7\" ");
-	printk(lcd_type == 2 ? "Samsung\n" : "Sharp\n");
 
 #if defined(CONFIG_FB_MBX) || defined(CONFIG_FB_MBX_MODULE)
 	if (lcd_type % 2 == 0) {
@@ -568,8 +630,6 @@ static void __init aximx50_init_display(void)
 		/* X50 */
 		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA Type 3)\n");
 		set_pxa_fb_info(&aximx50_fb_info_qvga3);
-
-		aximx50_ts_info.swap_xy = 0;
 	}
 	else {
 		printk(KERN_DEBUG "Using PXA Framebuffer (VGA)\n");
@@ -676,10 +736,13 @@ static void __init aximx50_init( void )
 	    gpio_direction_output(GPIO_NR_X50_TSC2046_CS, 1);
 	    
 	aximx50_init_fpga();
+	aximx50_detect_machine();
 	aximx50_init_display();
 	
     pxa_set_i2c_info(&aximx50_i2c_info);
-	//pxa27x_set_i2c_power_info(NULL);
+
+	/* Swap touchscreen co-ordinates on X51(v), but not X50(v) */
+	aximx50_ts_info.swap_xy = !!(machine_type & MACHINE_X51);
     
     pxa2xx_set_spi_info(1, &pxa_ssp_master_info);
     spi_register_board_info(aximx50_boardinfo, ARRAY_SIZE(aximx50_boardinfo));
