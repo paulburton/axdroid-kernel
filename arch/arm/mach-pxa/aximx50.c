@@ -599,12 +599,8 @@ static void __init aximx50_init_display(void)
 	else {
 #endif
 
-	if (lcd_type == 1) {
-		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA Type 1)\n");
-		set_pxa_fb_info(&aximx50_fb_info_qvga);
-	}
-	else if (lcd_type == 3) {
-		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA Type 3)\n");
+	if (lcd_type % 2) {
+		printk(KERN_DEBUG "Using PXA Framebuffer (QVGA)\n");
 		set_pxa_fb_info(&aximx50_fb_info_qvga);
 	}
 	else {
