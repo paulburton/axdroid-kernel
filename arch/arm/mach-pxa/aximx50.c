@@ -374,11 +374,6 @@ static void ads7846_cs(u32 command)
     gpio_set_value(GPIO_NR_X50_TSC2046_CS, !(command == PXA2XX_CS_ASSERT));
 }
 
-static int aximx50_ads7846_pendown_state(void)
-{
-    return !gpio_get_value(GPIO_NR_X50_PEN_IRQ_N);
-}
-
 static struct pxa2xx_spi_chip ads_hw = {
 //  .tx_threshold       = 12,
 //  .rx_threshold       = 12,
@@ -400,7 +395,6 @@ static struct ads7846_platform_data aximx50_ts_info = {
     .debounce_max       = 20,
     .debounce_tol       = 10,
     .debounce_rep       = 1,
-//  .get_pendown_state  = &aximx50_ads7846_pendown_state,
     .gpio_pendown       = GPIO_NR_X50_PEN_IRQ_N,
 };
 
