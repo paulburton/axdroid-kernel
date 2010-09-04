@@ -459,7 +459,7 @@ static struct pxafb_mode_info aximx50_pxafb_modes_qvga1[] = {
 static struct pxafb_mach_info aximx50_fb_info_qvga1 = {
 	.modes		= aximx50_pxafb_modes_qvga1,
 	.num_modes	= ARRAY_SIZE(aximx50_pxafb_modes_qvga1),
-	.lccr0		= LCCR0_Pas | LCCR0_RDSTM | LCCR0_CMDIM,
+	.lccr0		= LCCR0_Act | LCCR0_RDSTM | LCCR0_CMDIM,
 	.lccr3		= 0x04f00007,
 };
 
