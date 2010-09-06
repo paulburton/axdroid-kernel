@@ -30,7 +30,7 @@
 
 /* PCMCIA Socket 0: WiFi */
 #define GPIO_NR_AXIMX50_WIFI_RESET          89
-#define GPIO_NR_AXIMX50_WIFI_IRQ            107
+#define GPIO_NR_AXIMX50_WIFI_RDY            107
 
 /* PCMCIA Socket 1: CF */
 #define GPIO_NR_AXIMX50_PCMCIA_DETECT1	    13

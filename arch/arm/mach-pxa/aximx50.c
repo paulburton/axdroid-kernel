@@ -123,8 +123,8 @@ static unsigned long aximx50_pin_config[] __initdata = {
     GPIO55_nPREG,
     GPIO56_nPWAIT,
     GPIO57_nIOIS16,
-	GPIO89_GPIO,                          /* WiFi Reset */
-	GPIO107_GPIO | WAKEUP_ON_EDGE_BOTH,   /* WiFi Ready */
+	GPIO89_GPIO,    /* WiFi Reset */
+	GPIO107_GPIO,   /* WiFi Ready */
 
     /* SDRAM and local bus */
     GPIO15_nCS_1,
