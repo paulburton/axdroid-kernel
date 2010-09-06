@@ -196,7 +196,7 @@ static void aximx50_init_fpga(void)
  * Machine Detection
  */
 
-int aximx50_detect_machine(void)
+void aximx50_detect_machine(void)
 {
 	void __iomem *docregs_iobase;
 	__u16 id0, id1;
@@ -205,36 +205,36 @@ int aximx50_detect_machine(void)
 
 	/* First we'll see if we have a DOC G3 */
 	docregs_iobase = ioremap_nocache(0x00201000, 0x7FF);
-	if (!docregs_iobase) {
-		printk(KERN_ERR "Unable to map DOC register IO space!\n");
-		return -ENXIO;
+	if (docregs_iobase) {
+		readb(docregs_iobase + 0x0c);
+		writeb(0x5, docregs_iobase + 0x0c);
+		wmb();
+		writeb(0xA, docregs_iobase + 0x72);
+		wmb();
+
+		writew(0x1000, docregs_iobase + 0x1a);
+		wmb();
+		id0 = readw(docregs_iobase + 0x00);
+
+		writew(0x1074, docregs_iobase + 0x1a);
+		wmb();
+		id1 = readw(docregs_iobase + 0x74);
+
+		printk(KERN_DEBUG "DOC ID0 = 0x%04x\n", id0);
+		printk(KERN_DEBUG "DOC ID1 = 0x%04x\n", id1);
+
+		if (id0 == 0x0200 && id1 == 0xfdff) {
+			/* The device contains a DOC G3 flash chip */
+			/* Thus, it's an X51(v) */
+
+			machine_type |= MACHINE_X51;
+		}
+
+		iounmap(docregs_iobase);
 	}
-
-	readb(docregs_iobase + 0x0c);
-	writeb(0x5, docregs_iobase + 0x0c);
-	wmb();
-	writeb(0xA, docregs_iobase + 0x72);
-	wmb();
-
-	writew(0x1000, docregs_iobase + 0x1a);
-	wmb();
-	id0 = readw(docregs_iobase + 0x00);
-
-	writew(0x1074, docregs_iobase + 0x1a);
-	wmb();
-	id1 = readw(docregs_iobase + 0x74);
-
-	printk(KERN_DEBUG "DOC ID0 = 0x%04x\n", id0);
-	printk(KERN_DEBUG "DOC ID1 = 0x%04x\n", id1);
-
-	if (id0 == 0x0200 && id1 == 0xfdff) {
-		/* The device contains a DOC G3 flash chip */
-		/* Thus, it's an X51(v) */
-
-		machine_type |= MACHINE_X51;
+	else {
+		printk(KERN_ERR "Unable to map DOC register IO space! Assuming X50\n");
 	}
-
-	iounmap(docregs_iobase);
 
 	/* Now check the LCD type */
 	aximx50_fpga_set(0x1E, 0x8);
@@ -263,8 +263,6 @@ int aximx50_detect_machine(void)
            (machine_type & MACHINE_X51) ? 1 : 0,
 	       (machine_type & MACHINE_VGA) ? "v" : "",
 	       machine_type);
-
-	return 0;
 }
 
 /******************************************************************************
