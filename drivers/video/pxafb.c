@@ -67,6 +67,8 @@
  */
 #define DEBUG_VAR 1
 
+#define NUM_BUFFERS 2
+
 #include "pxafb.h"
 
 /* Bits which should not be set in machine configuration structures */
@@ -432,7 +434,7 @@ static int pxafb_adjust_timing(struct pxafb_info *fbi,
 	if (var->accel_flags & FB_ACCELF_TEXT)
 		var->yres_virtual = fbi->fb.fix.smem_len / line_length;
 	else
-		var->yres_virtual = max(var->yres_virtual, var->yres);
+		var->yres_virtual = max(var->yres_virtual, var->yres * NUM_BUFFERS);
 
 	/* check for limits */
 	if (var->xres > MAX_XRES || var->yres > MAX_YRES)
@@ -790,7 +792,7 @@ static int overlayfb_check_var(struct fb_var_screeninfo *var,
 		return -EINVAL;
 
 	var->xres_virtual = var->xres;
-	var->yres_virtual = max(var->yres, var->yres_virtual);
+	var->yres_virtual = max(var->yres * NUM_BUFFERS, var->yres_virtual);
 	return 0;
 }
 
@@ -1748,7 +1750,7 @@ decode_mode:
 	 */
 	for (i = 0, m = &inf->modes[0]; i < inf->num_modes; i++, m++)
 		fbi->video_mem_size = max_t(size_t, fbi->video_mem_size,
-				m->xres * m->yres * m->bpp / 8);
+				m->xres * m->yres * NUM_BUFFERS * m->bpp / 8);
 
 	if (inf->video_mem_size > fbi->video_mem_size)
 		fbi->video_mem_size = inf->video_mem_size;
