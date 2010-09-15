@@ -603,6 +603,12 @@ static void ads7846_rx(void *ads)
 
 		if (ts->swap_xy)
 			swap(x, y);
+		
+#ifdef CONFIG_MACH_X50
+		/* TODO: Tidy this up */
+		x = 480-(((x-256)*136)/1000);
+		y = (((y-176)*173)/1000);
+#endif
 
 		input_report_abs(input, ABS_X, x);
 		input_report_abs(input, ABS_Y, y);

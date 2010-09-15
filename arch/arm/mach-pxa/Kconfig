@@ -258,6 +258,23 @@ config MACH_VPAC270
 
 comment "End-user Products (sorted by vendor name)"
 
+config MACH_X50
+	bool "Dell Axim X50/X51(v)"
+	select PXA27x
+	select KEYBOARD_GPIO
+	help
+	  Say Y here if you plan to boot the kernel on the Dell Axim X50/X51(v)
+	  series of PDAs. Currently there is only basic support for this
+	  type of PDAs.
+
+config AXIMX50_VIDEOMTD
+	bool "Expose unused 2700g video RAM as an MTD device"
+	depends on MACH_X50
+	select MTD_PLATRAM
+	help
+	  Say Y here to expose any 2700g video RAM that is not in
+	  use by the system as an MTD device.
+
 config MACH_H4700
 	bool "HP iPAQ hx4700"
 	select PXA27x
